@@ -24,6 +24,10 @@ cfsr_lon = stringtofloat(str_get_field(cfsr(::), 1," "))
 cfsr_lat = stringtofloat(str_get_field(cfsr(::), 2," "))
 
 ; Workstation
+pltType = "png" ; ps, eps, pdf, ....
+pltName = "track" ; whatever
+pltDir = "./" ; plot directory ["./" is current directory]
+pltPath = pltDir + pltName
 wks = gsn_open_wks("png","track")
 
 ; Resources
@@ -54,23 +58,25 @@ res@gsnMajorLatSpacing          = 5
 res@gsnMajorLonSpacing          = 5
 res@gsnMinorLatSpacing          = 1
 res@gsnMinorLonSpacing          = 1
-;res@tiMainString                = "~Z80~ Ciclone extratropical de agosto de 2014"
-res@tiMainFontHeightF = 0.02
+res@tiMainString                = "~Z60~ Tracking the cyclone minimum sea level pressure"
+res@tiMainFontHeightF           = 0.02
+res@tmXTOn                      = False
+res@tmYROn                      = False
 
 ; Plot track.
 track = gsn_csm_map_ce(wks,res)
 
 ; Set up some legend resources.
-lgres                    = True
-lgres@lgLineColors       = (/"green4","blue","red","black"/)
-lgres@lgLineThicknessF   = 20.
-lgres@lgLabelFontHeightF = .48            ; set the legend label font thickness
-lgres@vpWidthF           = 0.25           ; width of legend (NDC)
-lgres@vpHeightF          = 0.15            ; height of legend (NDC)
-lgres@lgMonoDashIndex    = True
-lgres@lgPerimColor       = "white"       ; draw the box perimeter in orange
-lgres@lgPerimThicknessF = 3.0            ; thicken the box perimeter
-labels = (/"  CFSR","  WRF","  WRF + ROMS","  WRF + ROMS + SWAN"/)
+lgres                        = True
+lgres@lgLineColors           = (/"green4","blue","red","black"/)
+lgres@lgLineThicknessF       = 20.
+lgres@lgLabelFontHeightF     = .48            ; set the legend label font thickness
+lgres@vpWidthF               = 0.25           ; width of legend (NDC)
+lgres@vpHeightF              = 0.15            ; height of legend (NDC)
+lgres@lgMonoDashIndex        = True
+lgres@lgPerimColor           = "white"       ; draw the box perimeter in orange
+lgres@lgPerimThicknessF      = 3.0            ; thicken the box perimeter,
+labels                       = (/"  CFSR","  WRF","  WRF + ROMS","  WRF + ROMS + SWAN"/)
 
 ; Create the legend.
 lbid = gsn_create_legend(wks,4,labels,lgres)         ; create legend
@@ -149,5 +155,8 @@ marker_cfsr              = gsn_add_polymarker(wks,track,cfsr_lat,cfsr_lon,mres_c
 
 draw(track)
 frame(wks)
+
+; Minimize blank space
+system("convert -trim "+pltPath+"."+pltType+" "+pltPath+"."+pltType)
 
 end
