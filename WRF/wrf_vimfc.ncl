@@ -10,26 +10,30 @@ load "/home/ueslei/NCL/loads.ncl"
 begin
 
     merge_nc_output    = True
-    delete_single_time = False
+    delete_single_time = True
 
-    ; Open files
-    nc_file = addfile("/media/ueslei/Ueslei/INPE/PCI/Projetos/SC_2008/Outputs/normal/wrf.nc","r")
+    ; Open files.
+    nc_file  = addfile("/media/ueslei/Ueslei/INPE/PCI/Projetos/SC_2008/Outputs/normal/wrf.nc","r")
 
-    times   = nc_file->XTIME 
-    ntimes = dimsizes(times) 
+    ; Load basic variables.
+    times    = nc_file->XTIME 
+    ntimes   = dimsizes(times) 
 
         do i = 168,ntimes-1  
         ; Load variables.
-        lon2d   = nc_file->XLONG(i,:,:)	     	;; Longitude
-        lat2d   = nc_file->XLAT(i,:,:)		;; Latitude
-        lat     = lat2d(:,0)			;; Xarray of latitudes
-        lon     = lon2d(0,:)			;; Xarray of Longitudes
-        psfc    = nc_file->PSFC(i,:,:)
-        u_1     = wrf_user_getvar(nc_file,"ua",i)   	;; Surface Temp 
-        v_1     = wrf_user_getvar(nc_file,"va",i)   	;; Surface Temp 
-        mr      = nc_file->QVAPOR(i,:,:,:) ; The original unit of QVAPOR is kgkg-1
-        hus     = mr/(1+mr)
-        wrf_p   = nc_file->P(i,:,:,:)
+        lon2d     = nc_file->XLONG(i,:,:)
+        lat2d     = nc_file->XLAT(i,:,:)
+        lat       = lat2d(:,0)
+        lon       = lon2d(0,:)
+        psfc      = nc_file->PSFC(i,:,:)
+        u_1       = wrf_user_getvar(nc_file,"ua",i)
+        v_1       = wrf_user_getvar(nc_file,"va",i)
+        mr        = nc_file->QVAPOR(i,:,:,:) 
+        hus       = mr/(1+mr)
+        wrf_p     = nc_file->P(i,:,:,:)
+        times_nc1 = nc_file->XTIME(i)
+        lsm       = nc_file->LANDMASK(i,:,:)
+
 
         ; Vertical pressure layers for integration.
         user_lev = (/ 1000,975,950,925,900,875,850,825,800,775,750,725,700/)
@@ -68,8 +72,8 @@ begin
         mf_v!1    = "lon"
 
         ; Integrate fluxes from top to bottom.
-        dim_mf_uv  = dimsizes(mf_u)
-        vimfc      = uv2dv_cfd(mf_v,mf_v,lat,lon, 2)
+        dim_mf_uv = dimsizes(mf_u)
+        vimfc     = uv2dv_cfd(mf_v,mf_v,lat,lon, 2)
 
         ; Store VIMFC in new variable.
         vimfc!0 = "Times"
@@ -80,13 +84,16 @@ begin
         ; Create new VIMFC nc files.
         create_nc               = addfile("vimfc_"+i+".nc","c")
         create_nc->vimfc        = vimfc
+        create_nc->XTIME        = times_nc1   
+        create_nc->XLONG        = lon2d  
+        create_nc->XLONG        = lat2d  
+        create_nc->LANDMASK     = lsm          
         file_meta               = True            ; assign file attributes
         file_meta@title         = "VIMFC calculate from WRF output for SC_2008 project"
         file_meta@Contact       = "Ueslei A. Sutil (ueslei.sutil (at) inpe.br)"
         file_meta@creation_date = systemfunc ("date")
         file_meta@Conventions   = "CF"
         fileattdef(create_nc, file_meta)
-
     end do
     if merge_nc_output .eq. True then
         a = systemfunc("cdo cat vimfc_* vimfc.nc")
